@@ -102,6 +102,12 @@ public class RNTrackPlayerAudioPlayer: QueuedAudioPlayer {
 		} 
 		super.AVWrapperItemDidPlayToEndTime()
     }
+	
+	override func AVWrapper(didReceiveInPlaylistMetadata metadata: [String: String]) {
+		super.AVWrapper(didReceiveInPlaylistMetadata: metadata)
+		
+		self.reactEventEmitter.sendEvent(withName: "in-playlist-metadata", body: metadata)
+	}
 
 	// MARK: - Remote Command Center
     

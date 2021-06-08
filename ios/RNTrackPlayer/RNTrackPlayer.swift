@@ -92,6 +92,8 @@ public class RNTrackPlayer: RCTEventEmitter {
             "remote-like",
             "remote-dislike",
             "remote-bookmark",
+            
+            "in-playlist-metadata",
         ]
     }
     

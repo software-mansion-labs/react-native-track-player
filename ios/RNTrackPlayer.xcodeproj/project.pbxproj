@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3B21076426676B9900217272 /* ItemMetadataCollectorPushDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B21076326676B9900217272 /* ItemMetadataCollectorPushDelegate.swift */; };
 		9A0CF10E2046E5AC0093A5DF /* PitchAlgorithms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0CF10D2046E5AC0093A5DF /* PitchAlgorithms.swift */; };
 		9B0E282E1F07D76F00B71D2A /* RNTrackPlayerBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 9B0E282D1F07D76F00B71D2A /* RNTrackPlayerBridge.m */; };
 		9B0E282F1F07D76F00B71D2A /* RNTrackPlayerBridge.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9B0E282C1F07D76F00B71D2A /* RNTrackPlayerBridge.h */; };
@@ -57,6 +58,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		3B21076326676B9900217272 /* ItemMetadataCollectorPushDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemMetadataCollectorPushDelegate.swift; sourceTree = "<group>"; };
 		9A0CF10D2046E5AC0093A5DF /* PitchAlgorithms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchAlgorithms.swift; sourceTree = "<group>"; };
 		9B0E28291F07D76F00B71D2A /* libRNTrackPlayer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRNTrackPlayer.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B0E282C1F07D76F00B71D2A /* RNTrackPlayerBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RNTrackPlayerBridge.h; sourceTree = "<group>"; };
@@ -190,6 +192,7 @@
 				BF1CBB9D2450E5C5007C339D /* NowPlayingInfoController */,
 				BF1CBBA42450E5C5007C339D /* QueuedAudioPlayer.swift */,
 				BF1CBBA52450E5C5007C339D /* AVPlayerWrapper */,
+				3B21076326676B9900217272 /* ItemMetadataCollectorPushDelegate.swift */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -311,6 +314,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3B21076426676B9900217272 /* ItemMetadataCollectorPushDelegate.swift in Sources */,
 				BF1CBBC12450E5C5007C339D /* AVPlayerWrapperState.swift in Sources */,
 				BF1CBBB92450E5C5007C339D /* RemoteCommandController.swift in Sources */,
 				BF1CBBBC2450E5C5007C339D /* NowPlayingInfoKeyValue.swift in Sources */,

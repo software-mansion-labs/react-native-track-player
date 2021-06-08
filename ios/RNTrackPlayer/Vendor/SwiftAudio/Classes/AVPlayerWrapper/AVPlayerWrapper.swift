@@ -31,6 +31,8 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
     let playerTimeObserver: AVPlayerTimeObserver
     let playerItemNotificationObserver: AVPlayerItemNotificationObserver
     let playerItemObserver: AVPlayerItemObserver
+    var playerMetadataCollector: AVPlayerItemMetadataCollector
+    var metadataCollectorDelegate: ItemMetadataCollectorPushDelegate
     
     /**
      True if the last call to load(from:playWhenReady) had playWhenReady=true.
@@ -48,12 +50,17 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
     
     public init() {
         self.avPlayer = AVPlayer()
+
         self.playerObserver = AVPlayerObserver()
         self.playerObserver.player = avPlayer
         self.playerTimeObserver = AVPlayerTimeObserver(periodicObserverTimeInterval: timeEventFrequency.getTime())
         self.playerTimeObserver.player = avPlayer
         self.playerItemNotificationObserver = AVPlayerItemNotificationObserver()
         self.playerItemObserver = AVPlayerItemObserver()
+        
+        self.playerMetadataCollector = AVPlayerItemMetadataCollector()
+        self.metadataCollectorDelegate = ItemMetadataCollectorPushDelegate(player: self.avPlayer)
+        self.playerMetadataCollector.setDelegate(metadataCollectorDelegate, queue: DispatchQueue.main)
         
         self.playerObserver.delegate = self
         self.playerTimeObserver.delegate = self
@@ -65,6 +72,32 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
         self.avPlayer.allowsExternalPlayback = false;
         
         playerTimeObserver.registerForPeriodicTimeEvents()
+        
+        self.avPlayer.addPeriodicTimeObserver(
+            forInterval: CMTime(value: 500, timescale: 1000),
+            queue: DispatchQueue.main,
+            using: self.playerPeriodicObserver
+        )
+    }
+    
+    func playerPeriodicObserver(time: CMTime) {
+        if let itemDate = self.avPlayer.currentItem?.currentDate() {
+            let events = self.metadataCollectorDelegate.awaitingDateRangeEvents.filter { (event) in
+                itemDate > event.date
+            }
+            for event in events {
+                print("Event has been triggered: ", event, event.id, event.activeSpeaker, event.date)
+                self.metadataCollectorDelegate.awaitingDateRangeEvents.removeAll {
+                    ev in ev.id == event.id
+                }
+                
+                self.delegate?.AVPlayer(didReceiveInPlaylistMetadata: [
+                    "eventId": event.id,
+                    "activeSpeaker": event.activeSpeaker,
+                    "startDate": event.date.ISO8601Format(),
+                ])
+            }
+        }
     }
     
     // MARK: - AVPlayerWrapperProtocol
@@ -177,6 +210,7 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
     
     
     func load(from url: URL, playWhenReady: Bool, options: [String: Any]? = nil) {
+        print("Loading asset", url, playWhenReady)
         reset(soft: true)
         _playWhenReady = playWhenReady
 
@@ -203,8 +237,13 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
                     case .loaded:
                         if isPendingAsset {
                             let currentItem = AVPlayerItem(asset: pendingAsset, automaticallyLoadedAssetKeys: [Constants.assetPlayableKey])
+                            currentItem.add(self.playerMetadataCollector)
+                            
                             currentItem.preferredForwardBufferDuration = self.bufferDuration
                             self.avPlayer.replaceCurrentItem(with: currentItem)
+                            
+                            
+                            
                             
                             // Register for events
                             self.playerTimeObserver.registerForBoundaryTimeEvents()
@@ -232,6 +271,8 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
         }
     }
     
+
+    
     func load(from url: URL, playWhenReady: Bool, initialTime: TimeInterval? = nil, options: [String : Any]? = nil) {
         _initialTime = initialTime
         self.pause()
@@ -241,6 +282,12 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
     // MARK: - Util
     
     private func reset(soft: Bool) {
+        print("Reseting player")
+        
+        self.playerMetadataCollector = AVPlayerItemMetadataCollector()
+        self.metadataCollectorDelegate = ItemMetadataCollectorPushDelegate(player: self.avPlayer)
+        self.playerMetadataCollector.setDelegate(metadataCollectorDelegate, queue: DispatchQueue.main)
+        
         playerItemObserver.stopObservingCurrentItem()
         playerTimeObserver.unregisterForBoundaryTimeEvents()
         playerItemNotificationObserver.stopObservingCurrentItem()
@@ -255,7 +302,11 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
     
     /// Will recreate the AVPlayer instance. Used when the current one fails.
     private func recreateAVPlayer() {
+        print("New player")
         let player = AVPlayer()
+        
+        player.addPeriodicTimeObserver(forInterval: CMTime(value: 500, timescale: 1000), queue: DispatchQueue.main, using: self.playerPeriodicObserver)
+        
         playerObserver.player = player
         playerTimeObserver.player = player
         playerTimeObserver.registerForPeriodicTimeEvents()
@@ -323,8 +374,10 @@ extension AVPlayerWrapper: AVPlayerTimeObserverDelegate {
     func timeEvent(time: CMTime) {
         self.delegate?.AVWrapper(secondsElapsed: time.seconds)
     }
+}
     
 }
+
 
 extension AVPlayerWrapper: AVPlayerItemNotificationObserverDelegate {
     

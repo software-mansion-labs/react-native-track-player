@@ -9,7 +9,6 @@ import Foundation
 
 
 protocol AVPlayerWrapperDelegate: class {
-    
     func AVWrapper(didChangeState state: AVPlayerWrapperState)
     func AVWrapper(secondsElapsed seconds: Double)
     func AVWrapper(failedWithError error: Error?)
@@ -17,5 +16,5 @@ protocol AVPlayerWrapperDelegate: class {
     func AVWrapper(didUpdateDuration duration: Double)
     func AVWrapperItemDidPlayToEndTime()
     func AVWrapperDidRecreateAVPlayer()
-    
+    func AVWrapper(didReceiveInPlaylistMetadata metadata: [String: String])
 }
