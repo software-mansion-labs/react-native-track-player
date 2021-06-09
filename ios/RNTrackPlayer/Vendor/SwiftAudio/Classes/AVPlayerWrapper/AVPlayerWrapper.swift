@@ -83,19 +83,23 @@ class AVPlayerWrapper: AVPlayerWrapperProtocol {
     func playerPeriodicObserver(time: CMTime) {
         if let itemDate = self.avPlayer.currentItem?.currentDate() {
             let events = self.metadataCollectorDelegate.awaitingDateRangeEvents.filter { (event) in
-                itemDate > event.date
+                itemDate > event.startDate
             }
             for event in events {
-                print("Event has been triggered: ", event, event.id, event.activeSpeaker, event.date)
+                print("Ecountered IN-PLAYLIST event", event.id)
                 self.metadataCollectorDelegate.awaitingDateRangeEvents.removeAll {
                     ev in ev.id == event.id
                 }
                 
-                self.delegate?.AVPlayer(didReceiveInPlaylistMetadata: [
+                let formatter = ISO8601DateFormatter()
+                var metadata: [String: String] = [
                     "eventId": event.id,
-                    "activeSpeaker": event.activeSpeaker,
-                    "startDate": event.date.ISO8601Format(),
-                ])
+                    "startDate": formatter.string(from: event.startDate),
+                ]
+                
+                event.attributes.forEach { (key, value) in metadata[key] = value}
+            
+                self.delegate?.AVWrapper(didReceiveInPlaylistMetadata: metadata)
             }
         }
     }
@@ -375,9 +379,6 @@ extension AVPlayerWrapper: AVPlayerTimeObserverDelegate {
         self.delegate?.AVWrapper(secondsElapsed: time.seconds)
     }
 }
-    
-}
-
 
 extension AVPlayerWrapper: AVPlayerItemNotificationObserverDelegate {
     

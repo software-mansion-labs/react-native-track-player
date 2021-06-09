@@ -9,21 +9,21 @@
 import Foundation
 import AVFoundation
 
-class ActiveSpeakerEvent {
+class InPlaylistEvent {
     var id: String
-    var activeSpeaker: String
-    var date: Date
+    var startDate: Date
+    var attributes: [String: String]
     
-    init(id: String, activeSpeaker: String, date: Date) {
+    init(id: String, startDate: Date, attributes: [String: String]) {
         self.id = id
-        self.activeSpeaker = activeSpeaker
-        self.date = date
+        self.startDate = startDate
+        self.attributes = attributes
     }
 }
 
 class ItemMetadataCollectorPushDelegate: NSObject, AVPlayerItemMetadataCollectorPushDelegate {
     let player: AVPlayer
-    var awaitingDateRangeEvents: [ActiveSpeakerEvent] = []
+    var awaitingDateRangeEvents: [InPlaylistEvent] = []
     var registeredEvents: Set<String> = []
     
     public init(player: AVPlayer) {
@@ -34,22 +34,23 @@ class ItemMetadataCollectorPushDelegate: NSObject, AVPlayerItemMetadataCollector
                            didCollect metadataGroups: [AVDateRangeMetadataGroup],
                            indexesOfNewGroups: IndexSet,
                            indexesOfModifiedGroups: IndexSet) {
-  
         for metadataGroup in metadataGroups {
             let eventId = metadataGroup.uniqueID ?? ""
             if registeredEvents.contains(eventId) {
                 continue
             }
-            //print("Seeing", eventId, "for the first time, registering date", metadataGroup.startDate)
             self.registeredEvents.insert(eventId)
             
-            let event = ActiveSpeakerEvent(id: eventId, activeSpeaker: "", date: metadataGroup.startDate)
-        
+            var attributes: [String: String] = [:]
             for metadata in metadataGroup.items {
-                if (metadata.identifier?.rawValue == "lsdr/X-ACTIVE-SPEAKER") {
-                    event.activeSpeaker = metadata.stringValue!
+                if let key = metadata.key?.debugDescription {
+                    attributes[key] = metadata.stringValue!
                 }
             }
+            
+            let event = InPlaylistEvent(id: eventId, startDate: metadataGroup.startDate, attributes: attributes)
+    
+        
             self.awaitingDateRangeEvents.append(event)
         }
     }
