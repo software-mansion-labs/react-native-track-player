@@ -6,24 +6,33 @@ import com.facebook.react.bridge.Promise;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.*;
+import com.google.android.exoplayer2.Player.EventListener;
+import com.google.android.exoplayer2.Timeline.Window;
+import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.database.DatabaseProvider;
 import com.google.android.exoplayer2.database.ExoDatabaseProvider;
 import com.google.android.exoplayer2.source.ConcatenatingMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.hls.HlsManifest;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
 import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
 import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor;
 import com.google.android.exoplayer2.upstream.cache.SimpleCache;
+import com.guichaguri.trackplayer.service.InPlaylistMetadataManager;
 import com.guichaguri.trackplayer.service.MusicManager;
+import com.guichaguri.trackplayer.service.PeriodicHandler;
 import com.guichaguri.trackplayer.service.Utils;
 import com.guichaguri.trackplayer.service.models.Track;
 import java.io.File;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Guichaguri
@@ -35,10 +44,50 @@ public class LocalPlayback extends ExoPlayback<SimpleExoPlayer> {
     private SimpleCache cache;
     private ConcatenatingMediaSource source;
     private boolean prepared = false;
+    private InPlaylistMetadataManager inPlaylistMetadataManager;
+    private PeriodicHandler inPlaylistHandler;
 
     public LocalPlayback(Context context, MusicManager manager, SimpleExoPlayer player, long maxCacheSize) {
         super(context, manager, player);
         this.cacheMaxSize = maxCacheSize;
+        this.inPlaylistMetadataManager = new InPlaylistMetadataManager();
+
+        inPlaylistHandler = new PeriodicHandler(new Runnable() {
+            @Override
+            public void run() {
+                final int windowIndex = player.getCurrentWindowIndex();
+                Timeline currentTimeline = player.getCurrentTimeline();
+
+                if (windowIndex >= 0 && currentTimeline.getWindowCount() > 0) {
+                    final Timeline.Window window = currentTimeline.getWindow(windowIndex, new Timeline.Window());
+
+                    long pts = window.windowStartTimeMs + player.getCurrentPosition();
+
+
+                    Instant instant = Instant.ofEpochMilli(pts);
+
+                    List<InPlaylistMetadataManager.InPlaylistEvent> activeEvents =
+                            inPlaylistMetadataManager
+                                    .getAwaitingDateRangeEvents()
+                                    .stream()
+                                    .filter(speakerEvent -> speakerEvent.getStartDate().isBefore(instant))
+                                    .collect(Collectors.toList());
+
+                    activeEvents.forEach(event -> {
+                        Log.d(Utils.LOG, "Encountered IN-PLAYLIST event " + event.getId());
+                        manager.onInPlaylistMetadataReceived(event);
+                    });
+
+                    inPlaylistMetadataManager.removeAwaitingEvents(
+                            activeEvents
+                                    .stream()
+                                    .map(InPlaylistMetadataManager.InPlaylistEvent::getId)
+                                    .collect(Collectors.toList())
+                    );
+
+                }
+            }
+        }, 1000);
     }
 
     @Override
@@ -152,12 +201,14 @@ public class LocalPlayback extends ExoPlayback<SimpleExoPlayer> {
     @Override
     public void play() {
         prepare();
+        inPlaylistHandler.start();
         super.play();
     }
 
     @Override
     public void stop() {
         super.stop();
+        inPlaylistHandler.stop();
         prepared = false;
     }
 
@@ -174,6 +225,8 @@ public class LocalPlayback extends ExoPlayback<SimpleExoPlayer> {
 
         super.reset();
         resetQueue();
+        
+        this.inPlaylistMetadataManager.reset();
 
         manager.onTrackUpdate(track, position, null);
     }
@@ -201,6 +254,16 @@ public class LocalPlayback extends ExoPlayback<SimpleExoPlayer> {
     public void onPlayerError(ExoPlaybackException error) {
         prepared = false;
         super.onPlayerError(error);
+    }
+
+    @Override
+    public void onManifestUpdate(Object manifest) {
+        if (!(manifest instanceof HlsManifest)) {
+            return;
+        }
+
+        HlsManifest hlsManifest = (HlsManifest)manifest;
+        this.inPlaylistMetadataManager.processTags(((HlsManifest) manifest).mediaPlaylist.tags);
     }
 
     @Override

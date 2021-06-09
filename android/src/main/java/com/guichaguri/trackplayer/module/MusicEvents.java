@@ -36,6 +36,9 @@ public class MusicEvents extends BroadcastReceiver {
     public static final String PLAYBACK_METADATA = "playback-metadata-received";
     public static final String PLAYBACK_ERROR = "playback-error";
 
+    // In playlist metadata events
+    public static final String IN_PLAYLIST_METADATA = "in-playlist-metadata";
+
     private final ReactContext reactContext;
 
     public MusicEvents(ReactContext reactContext) {

@@ -65,6 +65,8 @@ public abstract class ExoPlayback<T extends Player> implements EventListener, Me
 
     public abstract void remove(List<Integer> indexes, Promise promise);
 
+    public abstract void onManifestUpdate(Object manifest);
+
     public abstract void removeUpcomingTracks();
 
     public void updateTrack(int index, Track track) {
@@ -236,6 +238,7 @@ public abstract class ExoPlayback<T extends Player> implements EventListener, Me
 
         if((reason == Player.TIMELINE_CHANGE_REASON_PREPARED || reason == Player.TIMELINE_CHANGE_REASON_DYNAMIC) && !timeline.isEmpty()) {
             onPositionDiscontinuity(Player.DISCONTINUITY_REASON_INTERNAL);
+            onManifestUpdate(player.getCurrentManifest());
         }
     }
 

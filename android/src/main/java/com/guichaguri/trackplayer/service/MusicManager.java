@@ -255,6 +255,18 @@ public class MusicManager implements OnAudioFocusChangeListener {
         service.emit(MusicEvents.PLAYBACK_ERROR, bundle);
     }
 
+    public void onInPlaylistMetadataReceived(InPlaylistMetadataManager.InPlaylistEvent event) {
+        Log.d(Utils.LOG, "onInPlaylistMetadataReceived");
+
+        Bundle bundle = new Bundle();
+        bundle.putString("eventId", event.getId());
+        bundle.putString("startDate", event.getStartDate().toString());
+
+        event.getAttributes().forEach(bundle::putString);
+
+        service.emit(MusicEvents.IN_PLAYLIST_METADATA, bundle);
+    }
+
     @Override
     public void onAudioFocusChange(int focus) {
         Log.d(Utils.LOG, "onDuck");
